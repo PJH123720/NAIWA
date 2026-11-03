@@ -246,9 +246,14 @@
   var camera = new T.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.1, 260);
   camera.position.set(0, 5.0, 9.15);
 
-  var hemi = new T.HemisphereLight(0xFFFFFF, 0xC7D0BE, 0.72);
+  // 光照分三层：AmbientLight 不参与法线计算，是移动 GPU 上的兜底。
+  // 有些驱动（尤其 Mali / 老 Adreno）在 Phong 的光照项里算出 0 或 NaN，
+  // 会让整个受光材质变成纯黑；环境光能保证任何情况下物体都有基础颜色。
+  var amb = new T.AmbientLight(0xFFFFFF, 0.38);
+  scene.add(amb);
+  var hemi = new T.HemisphereLight(0xFFFFFF, 0xC7D0BE, 0.46);
   scene.add(hemi);
-  var sun = new T.DirectionalLight(0xFFFFFF, 0.5);
+  var sun = new T.DirectionalLight(0xFFFFFF, 0.46);
   sun.position.set(6, 14, 8);
   scene.add(sun);
 
@@ -3480,6 +3485,8 @@
     updateHUD();
 
     renderer.render(scene, camera);
+    // 自检探针：必须紧跟在 render 之后读像素（present 之后 framebuffer 内容就没了）
+    if (window.__NW_PROBE) { try { window.__NW_PROBE(renderer); } catch (e) { } }
 
     // 自适应分辨率
     frameAcc += dt; frameCount++;
