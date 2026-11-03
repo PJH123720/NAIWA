@@ -37,8 +37,8 @@ KEYSTORE = os.path.join(TOOLCHAIN, 'debug.keystore')
 
 APP_NAME = '奶蛙快跑'
 PKG = 'com.naiwa.runner'
-VERSION_CODE = '5'
-VERSION_NAME = '1.4'
+VERSION_CODE = '6'
+VERSION_NAME = '1.5'
 MIN_SDK = '23'
 TARGET_SDK = '34'
 
