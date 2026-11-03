@@ -835,7 +835,8 @@ intent 重新判定（`singleTask` 不会重建 Activity）、每次 `loadUrl` �
 
 ## 版本管理
 
-仓库已经初始化在 `main` 分支，首个提交是「初始提交：3D 跑酷游戏 + 安卓安装包链路」。
+仓库在 `main` 分支，远程是 **https://github.com/PJH123720/NAIWA**（公开仓库，
+GitHub 建仓时生成的 `LICENSE` 已合并进来，历史是线性的）。
 
 ```bash
 git status                  # 改了什么
@@ -844,6 +845,7 @@ git add -A && git commit -m "描述"   # 存档
 git log --oneline           # 历史
 git checkout .              # 后悔了，丢弃未提交的改动
 git reset --hard <提交号>    # 回到某一次存档（会丢弃之后的改动，慎用）
+git push                    # 推上去（首次已设好 upstream，之后直接 push 即可）
 ```
 
 **不入库的东西**（`git status --ignored` 能看到，磁盘上都还在）：
