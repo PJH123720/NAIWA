@@ -231,6 +231,15 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
 
+  // 移动端 GPU 可能主动丢弃 WebGL 上下文（后台切换、显存紧张），
+  // 不接管的话画面会停在最后一帧或者整屏发黑。丢过一次就重载页面。
+  dom.canvas.addEventListener('webglcontextlost', function (e) {
+    e.preventDefault();
+  }, false);
+  dom.canvas.addEventListener('webglcontextrestored', function () {
+    try { location.reload(); } catch (err) { }
+  }, false);
+
   var scene = new T.Scene();
   var camera = new T.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.1, 260);
   camera.position.set(0, 5.0, 9.15);

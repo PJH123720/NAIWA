@@ -22,7 +22,9 @@ import android.widget.Toast;
  *
  * 几个不做就会「装得上但玩不了」的设置：
  *   - setMediaPlaybackRequiresUserGesture(false)：否则 BGM 和大笑会被自动播放策略拦掉
- *   - LAYER_TYPE_HARDWARE + hardwareAccelerated：Three.js 的 WebGL 需要
+ *   - **不要**给 WebView setLayerType(LAYER_TYPE_HARDWARE)：WebGL 的画布本来就由
+ *     Chromium 在 GPU 上合成，app 层再套一层硬件缓存会把 canvas 内容变成纯黑
+ *     （v1.1 机型上「角色和障碍全黑」就是这个引起的）
  *   - setAllowFileAccessFromFileURLs：file:// 页面加载同目录的 <script>/<audio>
  *   - noCompress wav/mp3（在 build.gradle）：>1MB 的压缩 assets 在部分 WebView 里无法 seek
  *
@@ -86,8 +88,21 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(false);
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);      // 改了资源重新装包立刻生效
 
+        // 关掉系统的「强制深色」：Android 10+ 在深色模式下会把 WebView 内容整体压暗，
+        // 浅色画面（这游戏是奶油色系）会被压成脏灰甚至发黑。
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try { s.setForceDark(WebSettings.FORCE_DARK_OFF); } catch (Throwable ignored) { }
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            try { s.setAlgorithmicDarkeningAllowed(false); } catch (Throwable ignored) { }
+        }
+
         web.setWebChromeClient(new WebChromeClient());
-        web.setLayerType(View.LAYER_TYPE_HARDWARE, null);   // WebGL 必须
+        // 关键：这里绝对不能 setLayerType(LAYER_TYPE_HARDWARE)。
+        // WebGL canvas 自己有 GPU 合成路径，再套一层硬件缓存会让画面变纯黑
+        // （表现为角色、障碍、地面全黑，只有 DOM 化的 HUD 正常）。
+        // 保持 LAYER_TYPE_NONE，由系统自动分配。
+        web.setLayerType(View.LAYER_TYPE_NONE, null);
         web.setBackgroundColor(0xFFFFF8EC);             // 与页面奶油底色一致，加载时不闪白
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);  // 不出现边缘回弹
         web.setHorizontalScrollBarEnabled(false);
