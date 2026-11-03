@@ -37,6 +37,6 @@ Thumbs.db
 desktop.ini
 .DS_Store
 
-# ===== WorkBuddy 项目数据（只保留工作日志）=====
-.workbuddy/*
-!.workbuddy/memory/
+# ===== WorkBuddy 项目数据：全部本地保留，不进版本库 =====
+# 工作日志含内部决策与个人信息，公开仓库不收录
+.workbuddy/
