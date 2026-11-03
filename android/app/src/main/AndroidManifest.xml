@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 游戏完全离线：故意不申请 INTERNET 权限，装包时不会要网络权限 -->
+    <!--
+      INTERNET 只是为了「开发模式」：用 adb 传一个 URL 启动，App 直接加载电脑上的
+      http 页面，改完 JS 手机刷新即生效，不用重新出包。
+      正式玩法走 file://android_asset，MainActivity 里 setBlockNetworkLoads(true)
+      会把一切网络请求掐死，所以正常玩的时候一个字节都不会发出去。
+      INTERNET 属于普通权限，安装时不会弹窗、用户在设置里也看不到它。
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <!-- Three.js 要 WebGL；声明成 required=false，让不支持的设备也能装（会白屏，但可提示） -->
     <uses-feature android:glEsVersion="0x00020000" android:required="false" />
@@ -12,6 +20,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/AppTheme"
         android:supportsRtl="true">
 

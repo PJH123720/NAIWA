@@ -781,14 +781,17 @@ EGG_SCORE: 10             // 每只奶龙的分值
 ## 安卓 App
 
 `android/` 里是一个完整可构建的 Android 工程（WebView 壳），
-游戏本体 100% 离线打包进 assets，**不申请 INTERNET 权限**，minSdk 23 / targetSdk 34。
+游戏本体 100% 离线打包进 assets，minSdk 23 / targetSdk 34。
+（清单里声明了 `INTERNET`，只给「开发模式」用；正式玩法走 `setBlockNetworkLoads(true)`，
+一个请求都发不出去。）
 
 **不用装 Android Studio 也能出包**（工具链免安装，约 600 MB）：
 
 ```bash
 py tools/install_toolchain.py    # 一次性：JDK 17 + android-34 + build-tools 34 + adb + 调试签名
-py tools/build_apk.py            # → android/app/build/outputs/apk/奶蛙快跑-v1.0.apk（4.76 MB）
+py tools/build_apk.py            # → android/app/build/outputs/apk/奶蛙快跑-v1.1.apk（4.77 MB）
 py tools/install_apk.py          # 手机插 USB 就一条命令装上并启动
+py tools/dev_server.py --watch   # 开发模式：改完 JS 保存，手机上自动重载，不用重新出包
 ```
 
 `build_apk.py` 跳过 Gradle，直接用 SDK 的 `aapt2 → javac → d8 → zipalign → apksigner`
@@ -798,6 +801,25 @@ py tools/install_apk.py          # 手机插 USB 就一条命令装上并启动
 （AGP 8 不允许），但 aapt2 link 又必须有，所以在构建沙箱里注入一份，源文件保持干净。
 
 也可以走 Android Studio：打开 `android/` → 插手机点 Run。详见 `android/README.md`。
+
+### 开发模式（改 JS 不用重新出包）
+
+调手感时改一行 `game.js` 就要传 5 MB 到手机重装，太慢。`py tools/dev_server.py`
+会把 App 变成「电脑页面的浏览器」：
+
+```bash
+py tools/dev_server.py          # 起服务 + adb reverse + 手机自动打开
+py tools/dev_server.py --watch  # 保存 game.js 就自动重载
+py tools/dev_server.py --stop   # 收工
+```
+
+手机上右下角出现 **DEV ↻** 角标，点一下刷新。走的是**USB 反向映射**
+（`adb reverse tcp:8000 tcp:8000`），不需要同一 WiFi，也不怕校园网的客户端隔离。
+点桌面图标正常启动 = 立刻回到离线 assets 版本，装给别人的包里这条路径走不到。
+
+`MainActivity` 侧的实现要点：`dev_url` 由 intent extra 传入、`onNewIntent` 按新
+intent 重新判定（`singleTask` 不会重建 Activity）、每次 `loadUrl` 都带 `?_t=时间戳`
+（同 URL 连发 WebView 可能不重新请求）、`setBlockNetworkLoads(false)` 只在 dev 分支开。
 
 安卓版操作是**四向滑动**（在 `game.js` 输入模块里实现，桌面鼠标拖拽同一套逻辑）：
 左/右滑换道、上滑跳、下滑蹲并保持约 0.9 秒、轻点也能跳。三条硬规则：

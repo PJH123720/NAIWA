@@ -110,11 +110,20 @@ if (a) return a.obj;
 | `py tools/install_toolchain.py` | 一次性装齐出包工具链（JDK 17 + android-34 + build-tools 34 + adb + 调试签名） |
 | `py tools/build_apk.py` | 不用 Gradle 直接出 APK（aapt2 → javac → d8 → zipalign → apksigner） |
 | `py tools/install_apk.py` | 手机插 USB 后一条命令装机并启动（自动等设备、查授权） |
+| `py tools/dev_server.py [--watch] [--lan] [--stop]` | 开发模式：HTTP 服务 + `adb reverse`，App 直接加载电脑上的文件，改完刷新即生效 |
 | `py tools/make_launcher_icon.py` | 重新生成 App 启动图标 PNG（API < 26 用） |
 
 `sim_headless.py` 末尾现在还会打一行 **BGM 自检**（文件是否加载成功、进度是否在走），
 headless 默认禁自动播放，所以要判「文件能不能用」看 `就绪=4` 就够，
 `状态=playing` 需要额外加 `--autoplay-policy=no-user-gesture-required` 才会出现。
+
+`dev_server.py` 三条容易踩的：
+
+- 默认只绑 `127.0.0.1`，靠 `adb reverse` 让手机访问 —— **别改成 0.0.0.0**，
+  否则同网段谁都能翻你的项目目录；确实要 WiFi 直连再用 `--lan`。
+- 响应头必须带 `Cache-Control: no-store`（已在 `Handler.end_headers` 里），
+  否则改完刷新还是旧代码，会误以为是「代码没生效」查半天。
+- `adb reverse` 在 USB 断开后就没了，重插线要重启脚本；`--stop` 可手动清。
 
 ## 坐标系（改代码前必须知道）
 

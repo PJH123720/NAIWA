@@ -16,7 +16,7 @@
 用法：
     py tools/build_apk.py
 
-产物：android/app/build/outputs/apk/奶蛙快跑-v1.0.apk
+产物：android/app/build/outputs/apk/奶蛙快跑-v1.1.apk
 """
 
 import os
@@ -37,8 +37,8 @@ KEYSTORE = os.path.join(TOOLCHAIN, 'debug.keystore')
 
 APP_NAME = '奶蛙快跑'
 PKG = 'com.naiwa.runner'
-VERSION_CODE = '1'
-VERSION_NAME = '1.0'
+VERSION_CODE = '2'
+VERSION_NAME = '1.1'
 MIN_SDK = '23'
 TARGET_SDK = '34'
 

@@ -2,6 +2,7 @@ package com.naiwa.runner;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,12 +25,28 @@ import android.widget.Toast;
  *   - LAYER_TYPE_HARDWARE + hardwareAccelerated：Three.js 的 WebGL 需要
  *   - setAllowFileAccessFromFileURLs：file:// 页面加载同目录的 <script>/<audio>
  *   - noCompress wav/mp3（在 build.gradle）：>1MB 的压缩 assets 在部分 WebView 里无法 seek
+ *
+ * ---- 开发模式 ----
+ * 调玩法时改一行 JS 就要重新出包（5 MB）再传到手机，很烦。所以留了一个口子：
+ *
+ *   adb shell am start -n com.naiwa.runner/.MainActivity \
+ *       -e dev_url "http://127.0.0.1:8000/index.html"
+ *
+ * 带上 dev_url 就加载电脑上的页面（配合 tools/dev_server.py 的 adb reverse），
+ * 手机屏幕上多一个 DEV 角标，点一下就是刷新。不带 extra 直接点桌面图标启动，
+ * 永远是离线的 assets 版本 —— 也就是说「是否开发模式」完全由启动方决定，
+ * 装给别人的包里这条路径永远走不到。
  */
 public class MainActivity extends Activity {
 
     private static final String GAME_URL = "file:///android_asset/www/index.html";
+
+    /** 只写 -e dev 1 时用这个默认地址（配合 dev_server.py 起的 8000 端口） */
+    private static final String DEV_DEFAULT_URL = "http://127.0.0.1:8000/index.html";
+
     private WebView web;
     private long lastBackAt = 0L;
+    private boolean devMode = false;
 
     @Override
     @SuppressLint("SetJavaScriptEnabled")
@@ -68,10 +85,7 @@ public class MainActivity extends Activity {
         s.setUseWideViewPort(false);
         s.setLoadWithOverviewMode(false);
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);      // 改了资源重新装包立刻生效
-        s.setBlockNetworkLoads(true);                  // 纯离线，别偷跑流量
-        s.setBlockNetworkImage(true);
 
-        web.setWebViewClient(new WebViewClient());      // 页面内跳转留在同一个 WebView
         web.setWebChromeClient(new WebChromeClient());
         web.setLayerType(View.LAYER_TYPE_HARDWARE, null);   // WebGL 必须
         web.setBackgroundColor(0xFFFFF8EC);             // 与页面奶油底色一致，加载时不闪白
@@ -85,8 +99,86 @@ public class MainActivity extends Activity {
         web.setHapticFeedbackEnabled(false);
         WebView.setWebContentsDebuggingEnabled(true);    // 连电脑可 chrome://inspect；上架前可关
 
-        web.loadUrl(GAME_URL);
+        // 每页加载完都挂一次 DEV 角标（只在开发模式下真的挂）
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                if (devMode) injectDevBadge();
+            }
+        });
+
+        open(resolveDevUrl(getIntent()));
         hideSystemBars();
+    }
+
+    /**
+     * 从 intent 里解析开发模式地址；返回 null 表示走离线的 assets 版本。
+     * 支持两种写法：-e dev_url "http://..."（任意地址）或 -e dev 1（默认 8000 端口）。
+     */
+    private String resolveDevUrl(Intent it) {
+        if (it == null) return null;
+        String url = it.getStringExtra("dev_url");
+        if (url != null) {
+            url = url.trim();
+            if (url.length() > 0) {
+                // 只写了 IP:端口 时补上协议和路径，省得手打
+                if (url.indexOf("://") < 0) url = "http://" + url;
+                return url;
+            }
+        }
+        String flag = it.getStringExtra("dev");
+        if (flag != null && (flag.equals("1") || flag.equalsIgnoreCase("true"))) {
+            return DEV_DEFAULT_URL;
+        }
+        return null;
+    }
+
+    /** 切换网络策略并加载目标页；devUrl 为 null 时回到离线 assets */
+    private void open(String devUrl) {
+        devMode = devUrl != null;
+        WebSettings s = web.getSettings();
+
+        if (devMode) {
+            // 开发模式下必须放行网络，否则 adb reverse 过来的请求会被当成越权拦掉
+            s.setBlockNetworkLoads(false);
+            s.setBlockNetworkImage(false);
+            Toast.makeText(this, "开发模式：" + devUrl + "\n改完代码刷新即可，点右下角 DEV",
+                    Toast.LENGTH_LONG).show();
+            // 每次重开都换一个查询串：同一个 URL 连续 loadUrl 时 WebView 有可能
+            // 认为「没变化」而不真的重新请求，改完 JS 就看不到效果。
+            web.loadUrl(cacheBust(devUrl));
+        } else {
+            // 正式玩法：彻底断网，连 DNS 都发不出去
+            s.setBlockNetworkLoads(true);
+            s.setBlockNetworkImage(true);
+            web.loadUrl(GAME_URL);
+        }
+    }
+
+    /** 在 #hash 之前插一个时间戳参数，强制走一次新的请求 */
+    private static String cacheBust(String url) {
+        int hash = url.indexOf('#');
+        String head = hash >= 0 ? url.substring(0, hash) : url;
+        String tail = hash >= 0 ? url.substring(hash) : "";
+        return head + (head.indexOf('?') >= 0 ? "&" : "?") + "_t=" + System.currentTimeMillis() + tail;
+    }
+
+    /** 开发模式角标：半透明小胶囊，点一下 location.reload() */
+    private void injectDevBadge() {
+        String js = "(function(){"
+                + "if(document.getElementById('__devbar'))return;"
+                + "var d=document.createElement('div');"
+                + "d.id='__devbar';d.textContent='DEV ↻';"
+                + "d.style.cssText='position:fixed;right:10px;bottom:12px;z-index:2147483647;"
+                + "padding:7px 11px;border-radius:14px;background:rgba(0,0,0,.42);"
+                + "color:#8f8;font:600 12px/1 monospace;letter-spacing:.5px;"
+                + "pointer-events:auto;-webkit-user-select:none;';"
+                + "d.addEventListener('click',function(e){e.stopPropagation();location.reload();});"
+                + "document.body.appendChild(d);})();";
+        try {
+            web.evaluateJavascript(js, null);
+        } catch (Throwable ignored) {
+        }
     }
 
     /** 沉浸式全屏：隐藏状态栏和导航栏，手势划出后会自动缩回（STICKY） */
@@ -104,6 +196,20 @@ public class MainActivity extends Activity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) hideSystemBars();
+    }
+
+    /**
+     * singleTask + 已在运行时，用 am start 再拉一次会走这里而不是新建 Activity。
+     * 所以「开发模式 ↔ 正式模式」的切换、以及改完地址重进，都靠这个口子。
+     * 关键点：每次都按新 intent 重新判定，不带 extra 就等于要求切回离线版
+     * （点桌面图标启动正好就是这个场景）。
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String url = resolveDevUrl(intent);
+        if (url != null || devMode) open(url);
     }
 
     @Override
