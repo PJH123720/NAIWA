@@ -228,6 +228,7 @@
 
   /* ---------------- 渲染器 / 场景 ---------------- */
   var renderer = new T.WebGLRenderer({ canvas: dom.canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+  window.__NW_RENDERER = renderer;   // 给 lib/diag.js 自检用
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
 
@@ -241,6 +242,7 @@
   }, false);
 
   var scene = new T.Scene();
+  window.__NW_SCENE = scene;         // 给 lib/diag.js 自测用
   var camera = new T.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.1, 260);
   camera.position.set(0, 5.0, 9.15);
 

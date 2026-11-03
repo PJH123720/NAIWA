@@ -30,6 +30,7 @@ FILES = [
     'game.js',
     'lib/three.min.js',
     'lib/glb-lite.js',
+    'lib/diag.js',
     'res/bgm.wav',
     'res/laugh.mp3',
     'res/奶娃照片.jpg',
