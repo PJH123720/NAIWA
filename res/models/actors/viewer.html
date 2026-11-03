@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>障碍物角色 · 图生 3D 结果</title>
+<style>
+  :root { --ink:#22262B; --sub:#6B7280; --line:#E3E7EC; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; }
+  body {
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(circle at 50% 18%, #FFFFFF 0%, #EDF1F6 58%, #E2E8F0 100%);
+    color:var(--ink); display:flex; flex-direction:column;
+  }
+  header { padding:20px 20px 4px; text-align:center; flex:none; }
+  h1 { margin:0; font-size:19px; font-weight:600; letter-spacing:.5px; }
+  p.sub { margin:6px 0 0; font-size:13px; color:var(--sub); }
+  #stage { flex:1; position:relative; min-height:0; }
+  canvas { display:block; }
+  .names {
+    flex:none; display:flex; justify-content:center; pointer-events:none;
+    padding:0 8px 4px;
+  }
+  .names div {
+    width:16.66%; text-align:center; font-size:13px; color:var(--ink);
+  }
+  .names b { display:block; font-size:15px; margin-bottom:3px; }
+  .names i { font-style:normal; font-size:11.5px; color:var(--sub); }
+  .names i.ok { color:#21895C; font-weight:600; }
+  .names i.no { color:#B4586B; }
+  .bar {
+    flex:none; display:flex; gap:8px; padding:6px 16px 20px;
+    justify-content:center; flex-wrap:wrap;
+  }
+  button {
+    font:inherit; font-size:13px; padding:8px 16px; border-radius:999px;
+    cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink);
+    transition:.15s;
+  }
+  button:hover { border-color:#B9C2CE; }
+  button.on { background:#22262B; color:#fff; border-color:#22262B; }
+  .tip { text-align:center; font-size:12px; color:var(--sub); padding-bottom:10px; flex:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>障碍物角色 · 图生 3D 结果</h1>
+  <p class="sub">每个都是拿 res/ 里的图直接生成的网格，拖拽可转视角</p>
+</header>
+<div id="stage"></div>
+<div class="names">
+  <div><b>奶龙</b><i>收集物 · 9,619 面</i></div>
+  <div><b>猪猪侠</b><i class="no">只能躲 · 判定顶 1.98</i></div>
+  <div><b>噜噜</b><i class="no">只能躲 · 判定顶 1.90</i></div>
+  <div><b>豆包</b><i class="ok">可跳 · 游戏内 1.05 · 判定顶 1.00</i></div>
+  <div><b>牛来</b><i class="no">只能躲 · 判定顶 1.88</i></div>
+  <div><b>我的刀盾</b><i class="ok">可跳 · 判定顶 1.05</i></div>
+  <div><b>奶牛</b><i class="no">只能躲 · 判定顶 2.00</i></div>
+</div>
+<div class="bar">
+  <button id="bTurn" class="on">自动旋转</button>
+  <button id="bFront">正面</button>
+  <button id="bSide">侧面</button>
+  <button id="bBack">背面</button>
+</div>
+<div class="tip">全部替换完成 · 刀盾是趴姿，按宽度定标（身高 1.63）</div>
+
+<script src="../../../lib/three.min.js"></script>
+<script src="../../../lib/glb-lite.js"></script>
+<script src="nailong_glb.js"></script>
+<script src="zhuzhuxia_glb.js"></script>
+<script src="lulu_glb.js"></script>
+<script src="doubao_glb.js"></script>
+<script src="niulai_glb.js"></script>
+<script src="daodun_glb.js"></script>
+<script src="cow_glb.js"></script>
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  var W = stage.clientWidth, H = stage.clientHeight;
+
+  var rnd = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  rnd.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  rnd.setSize(W, H, false);
+  stage.appendChild(rnd.domElement);
+
+  var scene = new THREE.Scene();
+  var cam = new THREE.PerspectiveCamera(34, W / H, 0.1, 200);
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b0a0, 1.05));
+  var d1 = new THREE.DirectionalLight(0xfff4e2, 0.95); d1.position.set(4, 8, 7); scene.add(d1);
+  var d2 = new THREE.DirectionalLight(0xdfe9ff, 0.42); d2.position.set(-6, 3, -5); scene.add(d2);
+
+  // 地面：一圈极淡的接触阴影，让模型不像浮在空中
+  var sh = new THREE.Mesh(
+    new THREE.CircleGeometry(6.4, 48),
+    new THREE.MeshBasicMaterial({ color: 0xA9B2BE, transparent: true, opacity: 0.13, depthWrite: false })
+  );
+  sh.rotation.x = -Math.PI / 2;
+  sh.position.y = -0.001;
+  scene.add(sh);
+
+  var order = [
+    ['ACTOR_NAILONG', 0.86],
+    ['ACTOR_ZHUZHUXIA', 1.52],
+    ['ACTOR_LULU', 1.42],
+    ['ACTOR_DOUBAO', 1.05],
+    ['ACTOR_NIULAI', 1.96],
+    ['ACTOR_DAODUN', 1.63],  // 趴姿：1.63 是游戏里按全宽 2.16 定标后的身高
+    ['ACTOR_COW', 2.00]
+  ];
+  var group = new THREE.Group();
+  scene.add(group);
+
+  var models = [];
+  order.forEach(function (it, i) {
+    var b64 = window[it[0]];
+    if (!b64) { console.warn('缺少', it[0]); return; }
+    var m = GLBLite.loadB64(b64, function () {});
+    m.updateMatrixWorld(true);
+    var box = new THREE.Box3().setFromObject(m);
+    var h = box.max.y - box.min.y;
+    var k = it[1] / h;
+    m.scale.setScalar(k);
+    m.position.y = -box.min.y * k;
+    m.position.x = (i - 3) * 1.62 + (i === 5 ? 0.45 : 0);   // 7 列；刀盾更宽，额外让 0.45 米
+    m.traverse(function (o) {
+      if (o.isMesh && o.material) {
+        o.material.shininess = 6;
+        o.material.specular = new THREE.Color(0x2A2318);
+      }
+    });
+    group.add(m);
+    models.push(m);
+  });
+
+  var yaw = 0, targetYaw = 0, auto = true;
+  var dragging = false, lastX = 0;
+
+  function place() {
+    // 7 列铺开约 11.6 米宽（刀盾 2.16 米 + 奶牛 1.4 米），水平视野需覆盖 ±5.8，
+    // 按 FOV 34° + 常见 16:9 算，dist 至少 9.6；留余量取 11.2
+    var dist = 11.2;
+    cam.position.set(Math.sin(yaw) * dist, 2.9, Math.cos(yaw) * dist);
+    cam.lookAt(0, 0.86, 0);
+  }
+  place();
+
+  rnd.domElement.addEventListener('pointerdown', function (e) {
+    dragging = true; lastX = e.clientX; rnd.domElement.setPointerCapture(e.pointerId);
+  });
+  rnd.domElement.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    targetYaw -= (e.clientX - lastX) * 0.006;
+    lastX = e.clientX;
+    auto = false;
+    document.getElementById('bTurn').classList.remove('on');
+  });
+  rnd.domElement.addEventListener('pointerup', function () { dragging = false; });
+
+  document.getElementById('bTurn').addEventListener('click', function () {
+    auto = !auto; this.classList.toggle('on', auto);
+  });
+  function jump(v) {
+    auto = false;
+    document.getElementById('bTurn').classList.remove('on');
+    targetYaw = v;
+  }
+  document.getElementById('bFront').addEventListener('click', function () { jump(0); });
+  document.getElementById('bSide').addEventListener('click', function () { jump(Math.PI / 2); });
+  document.getElementById('bBack').addEventListener('click', function () { jump(Math.PI); });
+
+  function resize() {
+    W = stage.clientWidth; H = stage.clientHeight;
+    rnd.setSize(W, H, false);
+    cam.aspect = W / H; cam.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+
+  (function loop() {
+    if (auto) targetYaw += 0.0042;
+    yaw += (targetYaw - yaw) * 0.08;
+    place();
+    rnd.render(scene, cam);
+    requestAnimationFrame(loop);
+  })();
+})();
+</script>
+</body>
+</html>

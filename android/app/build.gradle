@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.naiwa.runner'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.naiwa.runner"
+        minSdk 23              // Android 6.0，覆盖绝大多数在用设备；WebView 的 WebGL 也稳
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // 不额外配 keystore：复用 AGP 自带的 debug 签名（~/.android/debug.keystore），
+    // 这样 Build APK 出来的包立刻能装到真机，不用先折腾签名证书。
+    // 正式上架时再换成自己的 release keystore。
+
+    buildTypes {
+        debug {
+            // 调试包也允许连 chrome://inspect 看 WebView 控制台
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    // 音频要能被 <audio> 随机 seek，不能被 aapt 压缩（>1MB 的压缩 assets
+    // 在部分 WebView 的 file:// 下无法 seek，BGM 会卡在开头）。
+    // .js 保持压缩：里面是 base64 模型，压完 APK 能小一半。
+    androidResources {
+        noCompress 'wav', 'mp3'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

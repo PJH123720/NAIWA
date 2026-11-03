@@ -1,0 +1,7 @@
+// 顶层构建文件。Android Studio 打开本目录即可识别为 Gradle 工程。
+// AGP 8.1.4 需要 JDK 17 + Gradle 8.2（Android Studio Flamingo 及以上自带）。
+// 如果你的 Android Studio 较旧，把下面的版本改成 7.4.2，并把
+// gradle/wrapper/gradle-wrapper.properties 里的 Gradle 改成 7.5。
+plugins {
+    id 'com.android.application' version '8.1.4' apply false
+}

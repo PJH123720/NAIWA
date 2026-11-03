@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#FFF8EC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>奶蛙快跑</title>
+<style>
+  :root{
+    --cream:#FFF8EC;
+    --yellow:#FFC93C;
+    --yellow-d:#F0A81E;
+    --pink:#FFAFCC;
+    --pink-d:#F486A9;
+    --mint:#7FE0BD;
+    --ink:#5B4636;
+    --ink-2:#8C7864;
+    --white:#FFFDF7;
+    --shadow:0 10px 30px rgba(140,110,70,.16);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{
+    margin:0;padding:0;height:100%;width:100%;
+    background:var(--cream);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    color:var(--ink);
+    overflow:hidden;overscroll-behavior:none;
+    touch-action:none;-webkit-user-select:none;user-select:none;
+    -webkit-touch-callout:none;   /* 长按不弹系统菜单（安卓 WebView 尤其明显） */
+  }
+  #app{position:fixed;inset:0;overflow:hidden}
+  canvas#game{display:block;width:100%;height:100%;touch-action:none}
+
+  /* ---------- HUD ---------- */
+  #hud{
+    position:absolute;inset:0;pointer-events:none;
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 14px 0;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    opacity:0;transition:opacity .3s ease;font-variant-numeric:tabular-nums;
+  }
+  #hud.on{opacity:1}
+  .pill{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(255,253,247,.86);
+    border:2px solid rgba(255,255,255,.9);
+    box-shadow:0 6px 18px rgba(120,95,60,.16);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border-radius:999px;padding:8px 16px;
+  }
+  .score-pill .num{font-size:26px;font-weight:800;letter-spacing:.5px;color:#4A3728;line-height:1}
+  .score-pill .unit{font-size:12px;font-weight:700;color:var(--ink-2);margin-left:2px}
+  .egg-pill{padding:7px 14px 7px 10px}
+  .egg-pill .num{font-size:20px;font-weight:800;color:#C8871A;line-height:1}
+  .egg-icon{width:26px;height:26px;display:block}
+
+  /* ---------- 弹层通用 ---------- */
+  .screen{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    padding:24px;opacity:0;pointer-events:none;transition:opacity .28s ease;
+    background:radial-gradient(120% 90% at 50% 0%,rgba(255,247,228,.30),rgba(255,241,216,.44));
+    backdrop-filter:blur(0.9px) saturate(1.04);-webkit-backdrop-filter:blur(0.9px) saturate(1.04);
+  }
+  .screen.show{opacity:1;pointer-events:auto}
+  #startScreen{align-items:flex-start;padding-top:calc(env(safe-area-inset-top,0px) + 74px)}
+  .card{
+    width:100%;max-width:360px;
+    background:var(--white);
+    border-radius:30px;
+    padding:26px 22px 22px;
+    box-shadow:0 18px 46px rgba(150,115,70,.20),0 0 0 3px rgba(255,255,255,.75) inset;
+    text-align:center;
+    transform:translateY(12px) scale(.97);
+    transition:transform .34s cubic-bezier(.2,1.3,.45,1);
+    position:relative;
+  }
+  .screen.show .card{transform:translateY(0) scale(1)}
+
+  .mascot{
+    width:104px;height:104px;margin:-64px auto 8px;border-radius:50%;
+    overflow:hidden;background:#FFEFC0;
+    box-shadow:0 10px 22px rgba(160,120,50,.22),0 0 0 5px var(--white);
+  }
+  .mascot img{width:100%;height:100%;object-fit:cover;object-position:50% 38%;display:block}
+  h1{
+    margin:6px 0 2px;font-size:34px;letter-spacing:2px;font-weight:900;
+    color:#4A3728;
+    text-shadow:0 3px 0 #FFE9B0, 0 6px 12px rgba(190,150,70,.22);
+  }
+  .sub{margin:0 0 18px;font-size:13px;color:var(--ink-2);letter-spacing:1px}
+
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;border:none;border-radius:18px;
+    font-family:inherit;font-size:17px;font-weight:800;letter-spacing:1px;
+    padding:15px 10px;cursor:pointer;
+    transition:transform .12s ease,filter .12s ease;
+    position:relative;
+  }
+  .btn:active{transform:translateY(2px) scale(.985)}
+  .btn-main{background:linear-gradient(180deg,#FFD75E,#FFB92E);color:#6B4A12;
+    box-shadow:0 6px 0 #E9A012,0 12px 20px rgba(233,160,18,.30)}
+  .btn-main:active{box-shadow:0 3px 0 #E9A012,0 6px 12px rgba(233,160,18,.28)}
+  .btn-ad{background:linear-gradient(180deg,#9FE8FF,#6FD2F5);color:#0F5570;
+    box-shadow:0 6px 0 #43AED6,0 12px 20px rgba(67,174,214,.26);margin-bottom:10px}
+  .btn-ad:active{box-shadow:0 3px 0 #43AED6}
+  .btn-ghost{background:#FFF1D6;color:#8A6A3C;box-shadow:0 5px 0 #F0D7A8}
+  .btn-ghost:active{box-shadow:0 2px 0 #F0D7A8}
+  .btn-ad .tag{
+    font-size:10px;font-weight:800;background:rgba(255,255,255,.75);
+    padding:2px 6px;border-radius:6px;letter-spacing:0
+  }
+
+  .hints{
+    display:flex;flex-wrap:wrap;gap:6px 8px;justify-content:center;
+    margin-top:16px;font-size:11px;color:#A08C74;
+  }
+  .hints span{background:#FFF3DA;border-radius:8px;padding:4px 9px}
+
+  /* 结算 */
+  .result{display:flex;gap:8px;margin:14px 0 18px}
+  .result .box{
+    flex:1;background:#FFF6E3;border-radius:16px;padding:10px 6px;
+    border:1px solid #FFEAC0;
+  }
+  .result .box b{display:block;font-size:22px;font-weight:900;color:#4A3728;line-height:1.2}
+  .result .box i{font-style:normal;font-size:11px;color:#A08C74}
+  .over-title{font-size:24px;font-weight:900;margin:2px 0 0;color:#4A3728;letter-spacing:1px}
+  .over-tip{font-size:12px;color:var(--ink-2);margin:6px 0 0}
+  .newbest{
+    display:inline-block;margin-top:8px;font-size:11px;font-weight:800;color:#B4721A;
+    background:#FFE9AE;border-radius:8px;padding:3px 9px;
+  }
+
+  /* 广告模拟 */
+  .ad-card{max-width:320px}
+  .ad-badge{
+    display:inline-block;font-size:11px;font-weight:800;color:#fff;letter-spacing:2px;
+    background:#FFB4C6;border-radius:8px;padding:3px 10px;margin-bottom:12px;
+  }
+  .ad-title{font-size:16px;font-weight:800;margin:0 0 4px;color:#4A3728}
+  .ad-desc{font-size:12px;color:var(--ink-2);margin:0 0 14px}
+  .countdown{
+    width:76px;height:76px;margin:0 auto 14px;border-radius:50%;
+    background:conic-gradient(var(--yellow) var(--p,0%),#FFF0CE 0);
+    display:flex;align-items:center;justify-content:center;position:relative;
+  }
+  .countdown::after{
+    content:"";position:absolute;inset:7px;border-radius:50%;background:var(--white);
+  }
+  .countdown span{position:relative;z-index:1;font-size:26px;font-weight:900;color:#C8871A}
+  .ad-bar{height:8px;border-radius:99px;background:#FFF0CE;overflow:hidden}
+  .ad-bar i{display:block;height:100%;width:0;border-radius:99px;
+    background:linear-gradient(90deg,#FFD75E,#FFB92E);transition:width .25s linear}
+
+  /* ---------- 开场：奶蛙捧腹大笑 ---------- */
+  #introScreen{
+    flex-direction:column;align-items:stretch;justify-content:space-between;
+    padding:calc(env(safe-area-inset-top,0px) + 52px) 22px calc(env(safe-area-inset-bottom,0px) + 42px);
+    text-align:center;
+    background:radial-gradient(120% 78% at 50% 34%,rgba(255,249,232,.06),rgba(255,240,212,.44));
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+  .intro-title{
+    font-size:42px;font-weight:900;letter-spacing:5px;color:#4A3728;
+    text-shadow:0 4px 0 #FFE39A,0 10px 26px rgba(190,150,70,.34);
+  }
+  .intro-sub{
+    margin-top:10px;font-size:12px;font-weight:800;letter-spacing:4px;color:#9A7A4C;
+  }
+  .intro-foot{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .intro-hint{
+    font-size:12px;font-weight:800;letter-spacing:2px;color:#8A6A3C;
+    background:rgba(255,253,247,.82);border-radius:999px;padding:10px 20px;
+    box-shadow:0 8px 22px rgba(150,115,70,.18);
+    animation:breathe 1.9s ease-in-out infinite;
+  }
+  .intro-skip{font-size:11px;font-weight:800;letter-spacing:2px;color:#A08C74;opacity:.85}
+  @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @keyframes introPop{from{opacity:0;transform:translateY(-16px) scale(.92)}to{opacity:1;transform:none}}
+  #introScreen.show .intro-title{animation:introPop .7s cubic-bezier(.2,1.4,.4,1) both}
+  #introScreen.show .intro-sub{animation:fadein .9s .22s ease both}
+  #introScreen.show .intro-foot{animation:fadein .8s .55s ease both}
+
+  /* 小屏 / 横屏适配 */
+  @media (max-height: 680px) {
+    #startScreen{padding-top:calc(env(safe-area-inset-top,0px) + 54px)}
+    .card{padding:20px 18px 16px;border-radius:26px}
+    .mascot{width:82px;height:82px;margin:-48px auto 4px}
+    h1{font-size:28px}
+    .sub{margin-bottom:12px}
+    .btn{padding:13px 10px;font-size:16px}
+    .hints{margin-top:10px;font-size:10px}
+    .result{margin:10px 0 14px}
+    .intro-title{font-size:32px}
+    #introScreen{padding-top:calc(env(safe-area-inset-top,0px) + 40px)}
+  }
+
+  .fadein{animation:fadein .5s ease both}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+
+  .toast{
+    position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 96px);
+    transform:translate(-50%,-8px);
+    background:rgba(255,253,247,.92);color:#8A6A3C;
+    font-size:12px;font-weight:800;letter-spacing:2px;
+    padding:7px 16px;border-radius:999px;
+    box-shadow:0 6px 18px rgba(150,115,70,.18);
+    opacity:0;transition:opacity .35s ease,transform .35s ease;pointer-events:none;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <!-- 只显示：分数 / 奶龙数量 -->
+  <div id="hud">
+    <div class="pill score-pill">
+      <span class="num" id="scoreVal">0</span><span class="unit">分</span>
+    </div>
+    <div class="pill egg-pill">
+      <svg class="egg-icon" viewBox="0 0 40 40" aria-hidden="true">
+        <ellipse cx="20" cy="23" rx="13" ry="14" fill="#FFCF49"/>
+        <path d="M12 12c2-4 5-6 8-6s6 2 8 6" fill="#FFE38F"/>
+        <circle cx="14.5" cy="21" r="4.4" fill="#8FBF4D"/>
+        <circle cx="25.5" cy="21" r="4.4" fill="#8FBF4D"/>
+        <circle cx="15" cy="21.6" r="2.2" fill="#2B2B2B"/>
+        <circle cx="25" cy="21.6" r="2.2" fill="#2B2B2B"/>
+        <path d="M16 29.5h8" stroke="#7A5A3A" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <span class="num" id="eggVal">0</span>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- 开场：奶蛙捧腹大笑 -->
+  <div class="screen" id="introScreen">
+    <div>
+      <div class="intro-title">奶蛙快跑</div>
+      <div class="intro-sub">先笑一场 · 再跑一局</div>
+    </div>
+    <div class="intro-foot">
+      <div class="intro-hint">轻触屏幕 · 听奶蛙雷霆大笑</div>
+      <div class="intro-skip">跳过 ›</div>
+    </div>
+  </div>
+
+  <!-- 开始 -->
+  <div class="screen" id="startScreen">
+    <div class="card">
+      <div class="mascot"><img id="mascotImg" src="res/奶娃照片.jpg" alt="奶蛙"></div>
+      <h1>奶蛙快跑</h1>
+      <p class="sub">软萌奶蛙 · 一路狂飙</p>
+      <button class="btn btn-main" id="btnStart">开始游戏</button>
+      <div class="hints">
+        <span>← 左滑 · 左移</span>
+        <span>→ 右滑 · 右移</span>
+        <span>↑ 上滑 · 跳跃</span>
+        <span>↓ 下滑 · 下蹲</span>
+        <span>轻点屏幕 · 也能跳</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 结算 -->
+  <div class="screen" id="overScreen">
+    <div class="card">
+      <p class="over-title">奶蛙摔了一跤</p>
+      <p class="over-tip" id="overTip">再来一次，奶龙在等你</p>
+      <div class="result">
+        <div class="box"><b id="finalScore">0</b><i>本局分数</i></div>
+        <div class="box"><b id="finalEgg">0</b><i>收集奶龙</i></div>
+        <div class="box"><b id="bestScore">0</b><i>最远记录</i></div>
+      </div>
+      <button class="btn btn-ad" id="btnRevive">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2.5" y="5" width="19" height="14" rx="4" stroke="#0F5570" stroke-width="2"/>
+          <path d="M10.5 9.2v5.6l4.6-2.8-4.6-2.8z" fill="#0F5570"/>
+        </svg>
+        看广告复活 <span class="tag">限一次</span>
+      </button>
+      <button class="btn btn-ghost" id="btnRestart">再来一局</button>
+    </div>
+  </div>
+
+  <!-- 广告占位 -->
+  <div class="screen" id="adScreen">
+    <div class="card ad-card">
+      <div class="ad-badge">广告</div>
+      <p class="ad-title">奶蛙正在做深呼吸…</p>
+      <p class="ad-desc" id="adDesc">坚持住，马上复活！</p>
+      <div class="countdown" id="adRing"><span id="adCount">3</span></div>
+      <div class="ad-bar"><i id="adBar"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 背景音乐 =====
+     res/bgm.wav 由 tools/make_bgm.py 合成（138 BPM · 8 小节无缝循环 · 欢快的
+     芯片音乐风：主旋律 + 弹跳贝斯 + 底鼓/军鼓/闭镲）。
+     想换成自己的曲子：把任意音频命名为 bgm.mp3 放到 res/ 并把下面的 src 改掉即可，
+     文件缺失时自动回退到内置合成音。WAV 播 loop 没有编码器 padding，接缝听不出来。 -->
+<audio id="bgm" loop preload="auto" src="res/bgm.wav"></audio>
+
+<!-- ===== 奶蛙大笑音效（真实音频文件） =====
+     用 res/laugh.mp3；文件缺失或无法解码时自动回退到内置合成笑声 -->
+<audio id="laugh" preload="auto" src="res/laugh.mp3"></audio>
+
+<script src="lib/three.min.js"></script>
+<script src="lib/glb-lite.js"></script>
+<script src="res/models/naiwa_ai_glb.js"></script>
+<script src="res/models/mouth_patch.js"></script>
+<script src="res/models/actors/nailong_glb.js"></script>
+<script src="res/models/actors/lulu_glb.js"></script>
+<script src="res/models/actors/zhuzhuxia_glb.js"></script>
+<script src="res/models/actors/doubao_glb.js"></script>
+<script src="res/models/actors/niulai_glb.js"></script>
+<script src="res/models/actors/daodun_glb.js"></script>
+<script src="res/models/actors/cow_glb.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+# ===== 构建产物（几秒就能重新生成，不进仓库）=====
+android/app/build/
+android/.gradle/
+android/local.properties
+*.apk
+*.aab
+
+# 打包用的游戏副本：由 tools/sync_android_assets.py 从根目录同步生成，
+# 进仓库只会让同一个 game.js 改动出现两份 diff
+android/app/src/main/assets/www/
+
+# ===== 原始未压缩模型（168 MB）=====
+# 出包和运行只用 res/models/actors/*_glb.js（每个 0.5 MB 左右）。
+# raw/ 里是图生 3D 的原始 GLB（每个 ~24 MB）和预览图，留着占 168 MB。
+# 想让 git 也备份它们，删掉下面这行再 commit 即可。
+res/models/raw/*.glb
+
+# ===== 图生 3D 流水线留在项目根目录的中间产物 =====
+# .tmp_ 临时 glb、.c_ 拆件抠图、.r_ 参考重绘、.ref 参考切图、.bak_ 备份
+/.tmp_*
+/.c_*
+/.r_*
+/.ref*
+/.bak_*
+
+# ===== 调试产物 =====
+.shots/
+__pycache__/
+*.pyc
+*.pyo
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+*.iml
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ===== WorkBuddy 项目数据（只保留工作日志）=====
+.workbuddy/*
+!.workbuddy/memory/

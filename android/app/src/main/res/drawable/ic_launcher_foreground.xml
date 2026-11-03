@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 自适应图标前景：一只奶蛙脸。viewport 108dp，主体收在中间 66dp 安全区内，
+     不会被各家 Launcher 的圆形/方形遮罩切掉眼睛。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 头顶两个眼泡 -->
+    <path android:fillColor="#8FBF4D"
+        android:pathData="M40,30 m-11,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0" />
+    <path android:fillColor="#8FBF4D"
+        android:pathData="M68,30 m-11,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0" />
+
+    <!-- 脸 -->
+    <path android:fillColor="#9BD45F"
+        android:pathData="M54,30 C71,30 84,42 84,58 C84,76 71,88 54,88 C37,88 24,76 24,58 C24,42 37,30 54,30 Z" />
+
+    <!-- 眼白 -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M40,32 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M68,32 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
+
+    <!-- 瞳孔 -->
+    <path android:fillColor="#3B3327"
+        android:pathData="M41,33 m-3.2,0 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0" />
+    <path android:fillColor="#3B3327"
+        android:pathData="M67,33 m-3.2,0 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0" />
+
+    <!-- 腮红 -->
+    <path android:fillColor="#FF9FBE"
+        android:pathData="M34,63 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+    <path android:fillColor="#FF9FBE"
+        android:pathData="M74,63 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+
+    <!-- 微笑 -->
+    <path android:fillColor="#00000000"
+        android:strokeColor="#4A3728"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:pathData="M44,66 Q54,76 64,66" />
+</vector>

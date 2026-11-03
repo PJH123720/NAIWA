@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>奶蛙 · AI 图生 3D 结果</title>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+<style>
+  :root { --bg:#F5F7FA; --ink:#22262B; --sub:#6B7280; --line:#E3E7EC; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: radial-gradient(circle at 50% 20%, #FFFFFF 0%, #EDF1F6 60%, #E4E9F0 100%);
+    color: var(--ink); display:flex; flex-direction:column; align-items:center;
+  }
+  header { padding: 22px 20px 6px; text-align:center; }
+  h1 { margin:0; font-size:19px; letter-spacing:.5px; font-weight:600; }
+  p.sub { margin:6px 0 0; font-size:13px; color:var(--sub); }
+  .stage { flex:1; width:100%; max-width:760px; display:flex; align-items:center; justify-content:center; }
+  model-viewer { width:100%; height:100%; min-height:420px; background:transparent; --poster-color:transparent; }
+  .bar { display:flex; gap:8px; padding:10px 16px 22px; flex-wrap:wrap; justify-content:center; }
+  button {
+    font:inherit; font-size:13px; padding:8px 16px; border-radius:999px; cursor:pointer;
+    border:1px solid var(--line); background:#fff; color:var(--ink); transition:.15s;
+  }
+  button:hover { border-color:#B9C2CE; }
+  button.on { background:#22262B; color:#fff; border-color:#22262B; }
+  .tip { font-size:12px; color:var(--sub); padding-bottom:8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI 图生 3D · 直接由那张照片生成</h1>
+  <p class="sub">拖拽旋转 · 滚轮缩放 · 10,548 面 · 0.42 MB</p>
+</header>
+<div class="stage">
+  <model-viewer id="mv" src="naiwa_ai_lite.glb" alt="奶蛙 3D 模型"
+    camera-controls auto-rotate auto-rotate-delay="800" rotation-per-second="22deg"
+    environment-image="neutral" exposure="1.05" shadow-intensity="0.65"
+    camera-orbit="0deg 78deg 2.9m" min-camera-orbit="auto 0deg auto" max-camera-orbit="auto 100deg auto">
+  </model-viewer>
+</div>
+<div class="bar">
+  <button id="bFront" class="on">正面</button>
+  <button id="bSide">侧面</button>
+  <button id="bBack">背面</button>
+  <button id="bFace">脸部特写</button>
+</div>
+<div class="tip">提示：脸部细节是这一版最弱的地方，放大看眼睛和手指</div>
+<script>
+  var mv = document.getElementById('mv');
+  var views = {
+    bFront: ['0deg', '78deg', '2.9m'],
+    bSide: ['88deg', '78deg', '2.9m'],
+    bBack: ['180deg', '78deg', '2.9m'],
+    bFace: ['0deg', '72deg', '1.25m']
+  };
+  Object.keys(views).forEach(function (id) {
+    document.getElementById(id).addEventListener('click', function () {
+      Object.keys(views).forEach(function (k) {
+        document.getElementById(k).classList.toggle('on', k === id);
+      });
+      var v = views[id];
+      mv.cameraOrbit = v[0] + ' ' + v[1] + ' ' + v[2];
+      mv.fieldOfView = id === 'bFace' ? '22deg' : 'auto';
+    });
+  });
+</script>
+</body>
+</html>
