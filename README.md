@@ -810,3 +810,30 @@ py tools/install_apk.py          # 手机插 USB 就一条命令装上并启动
 
 打包细节（自动播放、WebGL 硬件加速、音频 seek、刘海屏、切后台暂停 BGM 等）
 都记在 `android/README.md` 第五节，逐条对应"不做就会出问题"的真实坑。
+
+## 版本管理
+
+仓库已经初始化在 `main` 分支，首个提交是「初始提交：3D 跑酷游戏 + 安卓安装包链路」。
+
+```bash
+git status                  # 改了什么
+git diff game.js            # 看具体改动
+git add -A && git commit -m "描述"   # 存档
+git log --oneline           # 历史
+git checkout .              # 后悔了，丢弃未提交的改动
+git reset --hard <提交号>    # 回到某一次存档（会丢弃之后的改动，慎用）
+```
+
+**不入库的东西**（`git status --ignored` 能看到，磁盘上都还在）：
+
+| 路径 | 为什么 | 体积 |
+|---|---|---|
+| `res/models/raw/*.glb` | 图生 3D 的原始 GLB，出包只用 `actors/*_glb.js` | 168 MB |
+| `android/app/build/`、`*.apk` | 构建产物，5 秒就能重新生成 | — |
+| `android/.../assets/www/` | 由 `tools/sync_android_assets.py` 从根目录同步生成 | 7 MB |
+| `.shots/` | headless 调试截图 | — |
+| `.tmp_* / .c_* / .r_* / .ref* / .bak_*` | 图生 3D 流水线留在根目录的中间文件 | 7 MB |
+
+想连原始模型一起备份：删掉 `.gitignore` 里 `res/models/raw/*.glb` 那行再提交即可。
+`res/models/naiwa_ai.glb`（23 MB）和 `.zip`（18 MB，原生 OBJ + PBR 贴图）**是入库的** ——
+它们是主角模型的唯一源文件，重新生成要烧图生 3D 的每日额度。
